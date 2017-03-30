@@ -1,22 +1,18 @@
-#include "xtal.h"
-#include "24xx1025.h"
+#include "../inc/24xx1025.h"
 
 #include <xc.h>
 #include <i2c.h>
 
-//#define DataRdyWaitI2C() while(!(SSPSTAT & 0x01))
-
-void ee24xx1025_open(){
+void ee24xx1025_open(uint32_t frequency){
   // set pins as input
   I2C_SCL = 1;
   I2C_SDA = 1;
   // open i2c
   OpenI2C(MASTER, SLEW_ON);
-  // the I2C clock frequency is given by:read
+  // the I2C clock frequency is given by:
   //    Fclock = Fosc / (4*(SSPADD + 1))
   //    =>SSPADD = (Fosc / 4*Fclock) - 1
-  // @Fosc = 24MHz, @Fclock = 400kHz
-  SSPADD = 14;
+  SSPADD = (_XTAL_FREQ / (4 * frequency)) - 1;
   // debounce
   __delay_us(250);
 }
@@ -29,7 +25,7 @@ uint8_t ee24xx1025_read(uint8_t i2caddress, uint8_t block, uint16_t address){
   // compute the control byte
   uint8_t ctrl = EE24XX1025_CONTROLCODE 
           | (i2caddress & (EE24XX1025_A0 | EE24XX1025_A1))
-          | (block & EE24XX1025_BLOCK1);
+          | ((!!block) * EE24XX1025_BLOCK1);
   // compute the address high and low byte
   uint8_t hiaddr = address >> 8;
   uint8_t loaddr = address & 0x00FF;
@@ -56,7 +52,7 @@ uint8_t ee24xx1025_next(uint8_t i2caddress, uint8_t block) {
   // compute the control byte
   uint8_t ctrl = EE24XX1025_CONTROLCODE 
           | (i2caddress & (EE24XX1025_A0 | EE24XX1025_A1))
-          | (block & EE24XX1025_BLOCK1)
+          | ((!!block) * EE24XX1025_BLOCK1)
           | EE24XX1025_READ;
   // read
   StartI2C();
@@ -76,8 +72,7 @@ void ee24xx1025_readseq(uint8_t i2caddress, uint8_t block, uint16_t address, uin
   // compute the control byte
   uint8_t ctrl = EE24XX1025_CONTROLCODE 
           | (i2caddress & (EE24XX1025_A0 | EE24XX1025_A1))
-          | (block & EE24XX1025_BLOCK1)
-          | EE24XX1025_READ;
+          | ((!!block) * EE24XX1025_BLOCK1);
   // compute the address high and low byte
   uint8_t hiaddr = address >> 8;
   uint8_t loaddr = address & 0x00FF;
@@ -108,7 +103,8 @@ void ee24xx1025_write(uint8_t i2caddress, uint8_t block, uint16_t address, uint8
     // compute the control byte
   uint8_t ctrl = EE24XX1025_CONTROLCODE 
           | (i2caddress & (EE24XX1025_A0 | EE24XX1025_A1))
-          | (block & EE24XX1025_BLOCK1);
+          | ((!!block) * EE24XX1025_BLOCK1)
+          | EE24XX1025_WRITE;
   // compute the address high and low byte
   uint8_t hiaddr = address >> 8;
   uint8_t loaddr = address & 0x00FF;
@@ -116,7 +112,7 @@ void ee24xx1025_write(uint8_t i2caddress, uint8_t block, uint16_t address, uint8
   // procedure to communicate is (','=ACK '.'=STOP and maj is start):
   //  Control byte, hiaddr, loaddr
   StartI2C();
-  WriteI2C(ctrl | EE24XX1025_WRITE);
+  WriteI2C(ctrl);
   WriteI2C(hiaddr);
   WriteI2C(loaddr);
   WriteI2C(data);
@@ -131,7 +127,8 @@ void ee24xx1025_writepage(uint8_t i2caddress, uint8_t block, uint16_t address, u
   // compute the control byte
   uint8_t ctrl = EE24XX1025_CONTROLCODE 
           | (i2caddress & (EE24XX1025_A0 | EE24XX1025_A1))
-          | (block & EE24XX1025_BLOCK1);
+          | ((!!block) * EE24XX1025_BLOCK1)
+          | EE24XX1025_WRITE;
   // compute the address high and low byte
   uint8_t hiaddr = address >> 8;
   uint8_t loaddr = address & 0x00FF;
@@ -139,7 +136,7 @@ void ee24xx1025_writepage(uint8_t i2caddress, uint8_t block, uint16_t address, u
   // procedure to communicate is (','=ACK '.'=STOP and maj is start):
   //  Control byte, hiaddr, loaddr
   StartI2C();
-  WriteI2C(ctrl | EE24XX1025_WRITE);
+  WriteI2C(ctrl);
   WriteI2C(hiaddr);
   WriteI2C(loaddr);
   while (length--) {
