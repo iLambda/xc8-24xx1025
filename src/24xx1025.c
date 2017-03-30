@@ -34,9 +34,12 @@ uint8_t ee24xx1025_read(uint8_t i2caddress, uint8_t block, uint16_t address){
   //  Control byte, hiaddr, loaddr
   StartI2C();
   WriteI2C(ctrl | EE24XX1025_WRITE);
+  IdleI2C();//WaitWriteI2C();
   WriteI2C(hiaddr);
+  IdleI2C();
   WriteI2C(loaddr);
-  StartI2C();
+  IdleI2C();
+  RestartI2C();
   WriteI2C(ctrl | EE24XX1025_READ);
   uint8_t value = ReadI2C();
   StopI2C();   
@@ -82,9 +85,12 @@ void ee24xx1025_readseq(uint8_t i2caddress, uint8_t block, uint16_t address, uin
   //  Control byte, hiaddr, loaddr
   StartI2C();
   WriteI2C(ctrl | EE24XX1025_WRITE);
+  IdleI2C();
   WriteI2C(hiaddr);
+  IdleI2C();
   WriteI2C(loaddr);
-  StartI2C();
+  IdleI2C();
+  RestartI2C();
   WriteI2C(ctrl | EE24XX1025_READ);
   while (length--) {
     *(out++) = ReadI2C();
@@ -113,8 +119,11 @@ void ee24xx1025_write(uint8_t i2caddress, uint8_t block, uint16_t address, uint8
   //  Control byte, hiaddr, loaddr
   StartI2C();
   WriteI2C(ctrl);
+  IdleI2C();
   WriteI2C(hiaddr);
+  IdleI2C();
   WriteI2C(loaddr);
+  IdleI2C();
   WriteI2C(data);
   IdleI2C();
   StopI2C();   
@@ -137,8 +146,11 @@ void ee24xx1025_writepage(uint8_t i2caddress, uint8_t block, uint16_t address, u
   //  Control byte, hiaddr, loaddr
   StartI2C();
   WriteI2C(ctrl);
+  IdleI2C();
   WriteI2C(hiaddr);
+  IdleI2C();
   WriteI2C(loaddr);
+  IdleI2C();
   while (length--) {
     WriteI2C(*(data++));
     IdleI2C();
